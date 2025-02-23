@@ -1,38 +1,25 @@
 <?php 
 	//connexion a la bdd
-	require("connexion.php");
-	
-	if (!empty($_POST["email"]) && !empty($_POST["password"]) && !empty("password_two")) {
-		//declaration des var
-
-		$email=htmlspecialchars($_POST["email"]);
-		$password=htmlspecialchars($_POST["password"]);
-		$passwordTwo=htmlspecialchars($_POST["password_two"]);
-		$secret=time().rand().rand();
+	require("src/connexion.php");
+	require_once("src/option.php");
+	if (isset($_SESSION["connect"])) {
+		header('location:index.php?');
+		exit();
+	}else {
 		
-		//verification des deux pssword
-		if ($password!=$passwordTwo) {
-
-			$quest=$bdd->query("SELECT * FROM users");
-			while ($id=$quest->fetch()) {
-				if (1) {
-					
-					//suppression  dans la bdd
-					$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
-					$delete->execute([
-						"secret"=>$secret
-					]);
-					//redirection
-					header("location:inscription.php?error=true&message=Les deux mots de passe ne sont pas identiques.");
-					exit();
-				}
-			}
+		if (!empty($_POST["email"]) && !empty($_POST["password"]) && !empty("password_two")) {
+			//declaration des var
+	
+			$email=htmlspecialchars($_POST["email"]);
+			$password=htmlspecialchars($_POST["password"]);
+			$password="aq1".sha1($password."123")."125";
+			$passwordTwo=htmlspecialchars($_POST["password_two"]);
+			$passwordTwo="aq1".sha1($passwordTwo."123")."125";
+			$secret=time().rand().rand();
 			
-		}
-		else {
-			
-			//verification de la validite de l email
-			if (!filter_var($email,FILTER_VALIDATE_EMAIL)) {
+			//verification des deux pssword
+			if ($password!=$passwordTwo) {
+	
 				$quest=$bdd->query("SELECT * FROM users");
 				while ($id=$quest->fetch()) {
 					if (1) {
@@ -43,88 +30,110 @@
 							"secret"=>$secret
 						]);
 						//redirection
-						
-						header("location:inscription.php?error=true&message=Votre adresse email est invalide.");
+						header("location:inscription.php?error=true&message=Les deux mots de passe ne sont pas identiques.");
 						exit();
 					}
+				}
+				
 			}
-			}
-			else{
-	
-				//insertion des donnees receuilli
+			else {
+				
+				//verification de la validite de l email
+				if (!filter_var($email,FILTER_VALIDATE_EMAIL)) {
+					$quest=$bdd->query("SELECT * FROM users");
+					while ($id=$quest->fetch()) {
+						if (1) {
+							
+							//suppression  dans la bdd
+							$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
+							$delete->execute([
+								"secret"=>$secret
+							]);
+							//redirection
+							
+							header("location:inscription.php?error=true&message=Votre adresse email est invalide.");
+							exit();
+						}
+				}
+				}
+				else{
+		
+					//insertion des donnees receuilli
+				
+					$quest=$bdd->prepare("INSERT INTO users(email,password,secret) VALUES(:email,:password,:secret)");
+					$quest->execute([
+						
+						
+						"email"=>$email,
+						"password"=>$password,
+						"secret"=>$secret
+					
+					
+					]);
+		
+					//verification des doublons
+					$double=$bdd->query("SELECT * FROM users ORDER BY id DESC");
+					
 			
-				$quest=$bdd->prepare("INSERT INTO users(email,password,secret) VALUES(:email,:password,:secret)");
-				$quest->execute([
+					$request=$bdd->prepare("SELECT COUNT(*) as numberEmail FROM users WHERE email=:email ");
+					$request->execute([
+						  "email"=> $email,
+						  
+					]);
 					
+					while ($resultat = $request->fetch()) {
+						if ($resultat["numberEmail"]!=1) {
+							
+							//suppression u doublon dans la bdd
+							$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
+							$delete->execute([
+								"secret"=>$secret
+							]);
+							//redirection
+							header("location: ./inscription.php?error=true&message=cette email est deja utilsée!");
+							exit();
+						}
+					}
+					 //il ya un erreur ici sa fonctionne pas comme il se doit dans la bdd verifie cette erreur
+					$request=$bdd->prepare("SELECT COUNT(*) as numberPassword FROM users WHERE password=:password");
+					$request->execute([
+						  "password"=> $password
+					]);
+					while ($resultat = $request->fetch()) {
+						if ($resultat["numberPassword"]!=1) {
+							
+							//suppression u doublon dans la bdd
+							$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
+							$delete->execute([
+								"secret"=>$secret
+							]);
+							//redirection
+							header("location: ./inscription.php?error=true&message=veuillez modifier votre mot de passe!");
+							exit();
+						}
+					}
 					
-					"email"=>$email,
-					"password"=>$password,
-					"secret"=>$secret
+				  
 				
 				
-				]);
-	
-				//verification des doublons
-				$double=$bdd->query("SELECT * FROM users ORDER BY id DESC");
+				}
 				
 		
-				$request=$bdd->prepare("SELECT COUNT(*) as numberEmail FROM users WHERE email=:email ");
-				$request->execute([
-					  "email"=> $email,
-					  
-				]);
-				
-				while ($resultat = $request->fetch()) {
-					if ($resultat["numberEmail"]!=1) {
-						
-						//suppression u doublon dans la bdd
-						$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
-						$delete->execute([
-							"secret"=>$secret
-						]);
-						//redirection
-						header("location: ./inscription.php?error=true&message=cette email est deja utilsée!");
-						exit();
-					}
+				//creation de la sesssion
+				if (!empty($email) && !empty($password)) {
+					
+					session_start();
+					$_SESSION["email"]=$email;
+					$_SESSION["password"]=$password;
+					$_SESSION['connect']=1;
+					$_SESSION['secret']=$secret;
+					header("location:./index.php?");
+					exit();
 				}
-			 	//il ya un erreur ici sa fonctionne pas comme il se doit dans la bdd verifie cette erreur
-				$request=$bdd->prepare("SELECT COUNT(*) as numberPassword FROM users WHERE password=:password");
-				$request->execute([
-					  "password"=> $password
-				]);
-				while ($resultat = $request->fetch()) {
-					if ($resultat["numberPassword"]!=1) {
-						
-						//suppression u doublon dans la bdd
-						$delete=$bdd->prepare("DELETE FROM users WHERE secret=:secret");
-						$delete->execute([
-							"secret"=>$secret
-						]);
-						//redirection
-						header("location: ./inscription.php?error=true&message=veuillez modifier votre mot de passe!");
-						exit();
-					}
-				}
-				
-			  
-			
-			
 			}
 			
 	
-			//creation de la sesssion
-			if (!empty($email) && !empty($password)) {
-				
-				session_start();
-				$_SESSION["email"]=$email;
-				$_SESSION["password"]=$password;
-				$_SESSION['connect']=1;
-				header("location:./logout.php?");
-				exit();
-			}
 		}
-		
-
 	}
 
 ?>
@@ -172,3 +181,4 @@
 	<?php include('src/footer.php'); ?>
 </body>
 </html>
+	

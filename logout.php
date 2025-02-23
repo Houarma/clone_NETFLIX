@@ -1,5 +1,8 @@
 <?php
     session_start();
-    header("location:./logout.php?connect=true&success=true&message=Vous etes connectez felicitations !");
-    exit()
+    session_unset();
+    session_destroy();
+    setcookie("auth",time()-1);
+    header('location: index.php?');
+    exit();
 ?>

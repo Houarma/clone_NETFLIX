@@ -1,11 +1,20 @@
 <?php
 	
 	session_start();
+	require_once("src/option.php");
+	//faire plutot une connexion a la base de donnee pour connecter nos utilisateur
 	//connecter notre user
 	if (!empty($_POST["email"]) && !empty($_POST["password"])) {
 		$email=htmlspecialchars($_POST["email"]);
 		$password=htmlspecialchars($_POST["password"]);
-		if ($email=htmlspecialchars($_SESSION["email"]) && $email=htmlspecialchars($_SESSION["password"])) {
+		$password="aq1".sha1($password."123")."125";
+		if ($email=htmlspecialchars($_SESSION["email"]) && $password=htmlspecialchars($_SESSION["password"])) {
+			$_SESSION["email"]=$email;
+			$_SESSION["password"]=$password;
+			$_SESSION["connect"]=1;
+			if (isset($_POST["auto"])) {
+				setcookie('auth',$_SESSION['secret'],time()+3600*24*365,'/',"",false,false);
+			}
 			header("location:./index.php?connect=true&success=true&message=Vous etes connectez felicitations !");
 			exit();
 		} else {
